@@ -1,0 +1,141 @@
+<html>
+	<head>
+		<script src="jquery.min.js"></script>
+		<script src="lotteryMachine.min.js"></script>
+		<link rel="stylesheet" href="css/general.css">
+	</head>
+	
+	<div class = "main">
+		<div class = "wrapper">
+			<body align="center">
+				<div id="ballMachine"></div>
+				</br>
+				<input id="nama" type="text" placeholder="Nama Pemenang" readonly="true"></input>
+				</br>
+				<input id="interval" type="number" onchange="reload()" placeholder="Interval"></input>
+				<input id="value" type="text" placeholder="Nama Event"></input>
+				<button class="button" style="vertical-align:middle;" onclick="set()"><span>Set </span></button>
+				<button class="button" style="vertical-align:middle; background-color: #6DFF33;" onclick="start()"><span>Mulai </span></button>
+				
+				<script type="text/javascript">		
+				var BASE_URL = '';
+				var nama_pemenang = "";
+				var value = "";
+				var nak = "";
+				var token = "544fdf75-8ae1-4217-9123-8bd60d7f56bb"
+					
+				function validation(){
+					if ($("#interval").val() === ''){
+						alert('Interval Kosong!');
+					} else if ($("#value").val() === ''){
+						alert('Search Key Kosong!');
+					} else{
+						return true;
+					}
+					return false;
+				}
+				
+				function set(){
+					if(validation()){
+						if ($('#interval').is(':hidden')){
+							$("#interval").show();
+							$("#value").show();
+						} else{
+							$("#interval").hide();
+							$("#value").hide();
+						}
+					}
+				}
+				
+				function getInterval(){
+					return localStorage.getItem("interval");
+				}
+				
+				function reload(){
+					localStorage.setItem("interval", $("#interval").val());
+					location.reload();
+				}
+				
+				//Initialize - Create the ball machine on a div element given
+				$(function() {
+					$("#interval").val(getInterval());
+					var machine = $("#ballMachine").lotteryMachine({
+					  containerRadius: 150,
+					  waitInterval: getInterval(),
+					  playSound: true,
+					  callback: function(data){
+						  $("#nama").val(nama_pemenang);
+						  setTimeout(
+							  function() 
+							  {
+								  confirmPemenang();
+							  }, 100);
+						  
+					  }
+					});
+				});		
+				
+				function confirmPemenang(){
+					if(confirm("Konfirmasi Pemenang " +nak +" ("+nama_pemenang+")")) {
+						$.ajax({
+							headers:{  
+							"KPG-Token":token,
+							"Content-type":"application/x-www-form-urlencoded"
+							},   url:BASE_URL + '/api/ws/other/v1/insertUndian',
+							type:'post',
+							data: {
+								nak: nak,
+								value: value
+							},
+							success:function(response){
+								alert("Sukses Memasukkan ke Database!");
+							}
+						});
+					}
+				  
+				}
+				
+				function start() {
+					$("#nama").val("");
+					if (validation()){
+						value = $("#value").val();
+						$.ajax({
+							headers:{  
+							"KPG-Token":token,
+							"Content-type":"application/x-www-form-urlencoded"//depends on your api
+							},   url:BASE_URL + '/api/ws/other/v1/getMasterUndianAnggota',
+							type:'post',
+							data: {
+								value: value
+							},
+							success:function(response){
+								if (response.resultdata.length > 0){
+									nak = response.resultdata[0].nak;
+									nama_pemenang = response.resultdata[0].name;
+									
+									$("#ballMachine").lotteryMachine('run', nak);
+								} else{
+									alert('Kuota Hadiah Habis!');
+								}
+							}
+						});
+					}
+				}
+				
+					function padTo2Digits(num) {
+						  return num.toString().padStart(2, '0');
+					}
+				
+					function formatDate(date) {
+					  return [
+						  date.getFullYear(),
+					      padTo2Digits(date.getMonth() + 1),
+						  padTo2Digits(date.getDate())
+					  ].join('-');
+					}
+				</script>
+			
+			</body>
+		</div>
+	</div>
+</html>
