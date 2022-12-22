@@ -10,10 +10,18 @@
 			<body align="center">
 				<div id="ballMachine"></div>
 				</br>
-				<input id="nama" type="text" placeholder="Nama Pemenang" readonly="true"></input>
+				<input id="hadiah" class="autoshow" type="text" placeholder="Hadiah" readonly="true"></input>
 				</br>
-				<input id="interval" type="number" onchange="reload()" placeholder="Interval"></input>
-				<input id="value" type="text" placeholder="Nama Event"></input>
+				<input id="nama" class="autoshow" type="text" placeholder="Nama Pemenang" readonly="true"></input>
+				</br>
+				<div id="set">
+					</br>
+					<input class="inputparam" id="interval" type="number" onchange="reload()" placeholder="Interval"></input>
+					</br>
+					<input class="inputparam" id="value" type="text" onchange="reload()" placeholder="Nama Event"></input>
+					</br>
+					<input id="konfirmasi" type="checkbox" onchange="reload()"><span style="color: white;">Konfirmasi Alert</span></input>
+				</div>
 				<button class="button" style="vertical-align:middle;" onclick="set()"><span>Set </span></button>
 				<button class="button" style="vertical-align:middle; background-color: #6DFF33;" onclick="start()"><span>Mulai </span></button>
 				
@@ -22,7 +30,9 @@
 				var nama_pemenang = "";
 				var value = "";
 				var nak = "";
-				var token = "544fdf75-8ae1-4217-9123-8bd60d7f56bb"
+				//var token = "a6d971e7-9c0c-4d36-b65b-64e8f112e082" //local
+				var token = "544fdf75-8ae1-4217-9123-8bd60d7f56bb";
+				var hadiah = "";
 					
 				function validation(){
 					if ($("#interval").val() === ''){
@@ -37,68 +47,114 @@
 				
 				function set(){
 					if(validation()){
-						if ($('#interval').is(':hidden')){
-							$("#interval").show();
-							$("#value").show();
+						if ($('#set').is(':hidden')){
+							$("#set").show();
 						} else{
-							$("#interval").hide();
-							$("#value").hide();
+							setHadiah();
+							$("#set").hide();
 						}
 					}
+				}
+				
+				function setHadiah(){
+					$.ajax({
+						headers:{  
+						"KPG-Token":token,
+						"Content-type":"application/x-www-form-urlencoded"
+						},   url:BASE_URL + '/api/ws/other/v1/getHadiah',
+						type:'post',
+						data: {
+							value: getValue()
+						},
+						success:function(response){
+							if (response.resultdata.length > 0){
+								hadiah = response.resultdata[0].description;
+								$("#hadiah").val(hadiah);
+							} else{
+								alert(response.message);
+							}
+						}
+					});
 				}
 				
 				function getInterval(){
 					return localStorage.getItem("interval");
 				}
 				
+				function getValue(){
+					return localStorage.getItem("value");
+				}
+				
+				function getKonfirmasi(){
+					return localStorage.getItem("konfirmasi");
+				}
 				function reload(){
 					localStorage.setItem("interval", $("#interval").val());
+					localStorage.setItem("value", $("#value").val());
+					localStorage.setItem("konfirmasi", $("#konfirmasi").prop("checked"));
 					location.reload();
 				}
 				
 				//Initialize - Create the ball machine on a div element given
 				$(function() {
 					$("#interval").val(getInterval());
+					$("#value").val(getValue());
+					if (getKonfirmasi() === 'true'){
+						$("#konfirmasi").prop('checked', true);
+					} else{
+						$("#konfirmasi").prop('checked', false);
+					}
 					var machine = $("#ballMachine").lotteryMachine({
-					  containerRadius: 150,
-					  waitInterval: getInterval(),
-					  playSound: true,
-					  callback: function(data){
-						  $("#nama").val(nama_pemenang);
-						  setTimeout(
-							  function() 
-							  {
-								  confirmPemenang();
-							  }, 100);
-						  
-					  }
-					});
+						  containerRadius: 150,
+						  waitInterval: getInterval(),
+						  playSound: true,
+						  callback: function(data){
+							  $("#nama").val(nama_pemenang);
+							  setTimeout(
+								  function() 
+								  {
+								  	  if (getKonfirmasi() === 'true'){
+									  	confirmPemenang();
+								  	  } else{
+								  		insertPemenang();
+								  	  }
+								  }, 100);
+							  
+						  }
+						});
 				});		
 				
 				function confirmPemenang(){
 					if(confirm("Konfirmasi Pemenang " +nak +" ("+nama_pemenang+")")) {
-						$.ajax({
-							headers:{  
-							"KPG-Token":token,
-							"Content-type":"application/x-www-form-urlencoded"
-							},   url:BASE_URL + '/api/ws/other/v1/insertUndian',
-							type:'post',
-							data: {
-								nak: nak,
-								value: value
-							},
-							success:function(response){
-								alert("Sukses Memasukkan ke Database!");
-							}
-						});
+						insertPemenang();
 					}
-				  
+					$("#nama").val("");
+				}
+				
+				function insertPemenang(){
+					$.ajax({
+						headers:{  
+						"KPG-Token":token,
+						"Content-type":"application/x-www-form-urlencoded"
+						},   url:BASE_URL + '/api/ws/other/v1/insertUndian',
+						type:'post',
+						data: {
+							nak: nak,
+							value: value
+						},
+						success:function(response){
+							alert("Sukses Memasukkan ke Database!");
+							setHadiah();
+						}
+					});
 				}
 				
 				function start() {
 					$("#nama").val("");
-					if (validation()){
-						value = $("#value").val();
+					if ($("#hadiah").val() === ''){
+						alert('Hadiah Belum diset!');
+					} else if (validation()){
+						value = getValue();
 						$.ajax({
 							headers:{  
 							"KPG-Token":token,

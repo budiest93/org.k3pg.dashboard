@@ -61,14 +61,17 @@ html {
   right: 0;
 }
 
-input {
-  width: 25%;
-}
 
-#nama{
-	width: 35%;
+.autoshow{
+	width: 50%;
 	font-size: 200%;
 	font-weight: bold;
+	text-align: center;
+}
+
+.inputparam{
+	width: 25%;
+	font-size: 200%;
 }
 
 input:focus {
